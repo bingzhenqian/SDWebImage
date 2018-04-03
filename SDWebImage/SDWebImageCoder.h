@@ -46,6 +46,7 @@ CG_EXTERN BOOL SDCGImageRefContainsAlpha(_Nullable CGImageRef imageRef);
  @param data The image data so we can look at it
  @return YES if this coder can decode the data, NO otherwise
  */
+//是否可以解码
 - (BOOL)canDecodeFromData:(nullable NSData *)data;
 
 /**
@@ -54,6 +55,7 @@ CG_EXTERN BOOL SDCGImageRefContainsAlpha(_Nullable CGImageRef imageRef);
  @param data The image data to be decoded
  @return The decoded image from data
  */
+//解码图片
 - (nullable UIImage *)decodedImageWithData:(nullable NSData *)data;
 
 /**

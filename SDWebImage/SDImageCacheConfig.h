@@ -5,7 +5,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+// 配置缓存参数 是否压缩，iCloud，ImMemory，ReadingOption，时间，CacheSize
 #import <Foundation/Foundation.h>
 #import "SDWebImageCompat.h"
 

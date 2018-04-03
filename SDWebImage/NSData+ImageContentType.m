@@ -28,6 +28,7 @@
     
     // File signatures table: http://www.garykessler.net/library/file_sigs.html
     uint8_t c;
+    //数据头一个字符表示图片类型
     [data getBytes:&c length:1];
     switch (c) {
         case 0xFF:

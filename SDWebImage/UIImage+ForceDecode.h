@@ -7,7 +7,7 @@
  */
 
 #import "SDWebImageCompat.h"
-
+//强制解码分类
 @interface UIImage (ForceDecode)
 
 + (nullable UIImage *)decodedImageWithImage:(nullable UIImage *)image;

@@ -15,6 +15,8 @@
  *  Creates an animated UIImage from an NSData.
  *  For static GIF, will create an UIImage with `images` array set to nil. For animated GIF, will create an UIImage with valid `images` array.
  */
+
+// 用data数据创建一个带动画的UIImage对象
 + (UIImage *)sd_animatedGIFWithData:(NSData *)data;
 
 /**

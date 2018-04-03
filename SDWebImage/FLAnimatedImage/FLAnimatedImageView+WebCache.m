@@ -5,7 +5,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//https://www.jianshu.com/p/fd984fd8bd5d
+//参考 https://www.jianshu.com/p/06f0265c22eb
 #import "FLAnimatedImageView+WebCache.h"
 
 #if SD_UIKIT

@@ -5,7 +5,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//下载管理入口
 #import <Foundation/Foundation.h>
 #import "SDWebImageCompat.h"
 #import "SDWebImageOperation.h"
@@ -66,12 +66,12 @@ typedef NS_ENUM(NSInteger, SDWebImageDownloaderExecutionOrder) {
     /**
      * Default value. All download operations will execute in queue style (first-in-first-out).
      */
-    SDWebImageDownloaderFIFOExecutionOrder,
+    SDWebImageDownloaderFIFOExecutionOrder,//先进先出 管道
 
     /**
      * All download operations will execute in stack style (last-in-first-out).
      */
-    SDWebImageDownloaderLIFOExecutionOrder
+    SDWebImageDownloaderLIFOExecutionOrder//后进先出  栈
 };
 
 FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStartNotification;
@@ -113,22 +113,23 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
  * Decompressing images that are downloaded and cached can improve performance but can consume lot of memory.
  * Defaults to YES. Set this to NO if you are experiencing a crash due to excessive memory consumption.
  */
-@property (assign, nonatomic) BOOL shouldDecompressImages;
+
+@property (assign, nonatomic) BOOL shouldDecompressImages;//下载图片是否需要解压缩，默认yes
 
 /**
  *  The maximum number of concurrent downloads
  */
-@property (assign, nonatomic) NSInteger maxConcurrentDownloads;
+@property (assign, nonatomic) NSInteger maxConcurrentDownloads;//下载线程最大并发数
 
 /**
  * Shows the current amount of downloads that still need to be downloaded
  */
-@property (readonly, nonatomic) NSUInteger currentDownloadCount;
+@property (readonly, nonatomic) NSUInteger currentDownloadCount;//当前队列操作数
 
 /**
  *  The timeout value (in seconds) for the download operation. Default: 15.0.
  */
-@property (assign, nonatomic) NSTimeInterval downloadTimeout;
+@property (assign, nonatomic) NSTimeInterval downloadTimeout;//超时时间
 
 /**
  * The configuration in use by the internal NSURLSession.
@@ -142,7 +143,7 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
 /**
  * Changes download operations execution order. Default value is `SDWebImageDownloaderFIFOExecutionOrder`.
  */
-@property (assign, nonatomic) SDWebImageDownloaderExecutionOrder executionOrder;
+@property (assign, nonatomic) SDWebImageDownloaderExecutionOrder executionOrder;//执行顺序
 
 /**
  *  Singleton method, returns the shared instance
@@ -154,7 +155,7 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
 /**
  *  Set the default URL credential to be set for request operations.
  */
-@property (strong, nonatomic, nullable) NSURLCredential *urlCredential;
+@property (strong, nonatomic, nullable) NSURLCredential *urlCredential;//验证信息
 
 /**
  * Set username

@@ -7,7 +7,7 @@
  */
 
 #import <Foundation/Foundation.h>
-
+//取消委托
 @protocol SDWebImageOperation <NSObject>
 
 - (void)cancel;

@@ -5,7 +5,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//提供外层管理缓存和下载入口
 #import "SDWebImageCompat.h"
 #import "SDWebImageOperation.h"
 #import "SDWebImageDownloader.h"

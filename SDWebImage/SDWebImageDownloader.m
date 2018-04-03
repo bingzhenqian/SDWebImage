@@ -34,10 +34,10 @@
 
 @interface SDWebImageDownloader () <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
 
-@property (strong, nonatomic, nonnull) NSOperationQueue *downloadQueue;
+@property (strong, nonatomic, nonnull) NSOperationQueue *downloadQueue;//下载队列
 @property (weak, nonatomic, nullable) NSOperation *lastAddedOperation;
 @property (assign, nonatomic, nullable) Class operationClass;
-@property (strong, nonatomic, nonnull) NSMutableDictionary<NSURL *, SDWebImageDownloaderOperation *> *URLOperations;
+@property (strong, nonatomic, nonnull) NSMutableDictionary<NSURL *, SDWebImageDownloaderOperation *> *URLOperations;//全局下载字典
 @property (strong, nonatomic, nullable) SDHTTPHeadersMutableDictionary *HTTPHeaders;
 @property (strong, nonatomic, nonnull) dispatch_semaphore_t operationsLock; // a lock to keep the access to `URLOperations` thread-safe
 @property (strong, nonatomic, nonnull) dispatch_semaphore_t headersLock; // a lock to keep the access to `HTTPHeaders` thread-safe
@@ -52,17 +52,20 @@
 + (void)initialize {
     // Bind SDNetworkActivityIndicator if available (download it here: http://github.com/rs/SDNetworkActivityIndicator )
     // To use it, just add #import "SDNetworkActivityIndicator.h" in addition to the SDWebImage import
+    //runtime机制生成SDNetworkActivityIndicator类型实例
     if (NSClassFromString(@"SDNetworkActivityIndicator")) {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+        //runtime机制调用SDNetworkActivityIndicator类型方法sharedActivityIndicator生成实例
         id activityIndicator = [NSClassFromString(@"SDNetworkActivityIndicator") performSelector:NSSelectorFromString(@"sharedActivityIndicator")];
 #pragma clang diagnostic pop
-
+        
         // Remove observer in case it was previously added.
+        //移除Start，stop通知
         [[NSNotificationCenter defaultCenter] removeObserver:activityIndicator name:SDWebImageDownloadStartNotification object:nil];
         [[NSNotificationCenter defaultCenter] removeObserver:activityIndicator name:SDWebImageDownloadStopNotification object:nil];
-
+        //添加通知
         [[NSNotificationCenter defaultCenter] addObserver:activityIndicator
                                                  selector:NSSelectorFromString(@"startActivity")
                                                      name:SDWebImageDownloadStartNotification object:nil];
@@ -71,7 +74,7 @@
                                                      name:SDWebImageDownloadStopNotification object:nil];
     }
 }
-
+//单例
 + (nonnull instancetype)sharedDownloader {
     static dispatch_once_t once;
     static id instance;
@@ -87,9 +90,11 @@
 
 - (nonnull instancetype)initWithSessionConfiguration:(nullable NSURLSessionConfiguration *)sessionConfiguration {
     if ((self = [super init])) {
+        //队列
         _operationClass = [SDWebImageDownloaderOperation class];
         _shouldDecompressImages = YES;
         _executionOrder = SDWebImageDownloaderFIFOExecutionOrder;
+        //并发数6
         _downloadQueue = [NSOperationQueue new];
         _downloadQueue.maxConcurrentOperationCount = 6;
         _downloadQueue.name = @"com.hackemist.SDWebImageDownloader";
@@ -101,7 +106,7 @@
 #endif
         _operationsLock = dispatch_semaphore_create(1);
         _headersLock = dispatch_semaphore_create(1);
-        _downloadTimeout = 15.0;
+        _downloadTimeout = 15.0;//超时时间
 
         [self createNewSessionWithConfiguration:sessionConfiguration];
     }
@@ -109,12 +114,13 @@
 }
 
 - (void)createNewSessionWithConfiguration:(NSURLSessionConfiguration *)sessionConfiguration {
+    //取消所有下载任务
     [self cancelAllDownloads];
-
+    
     if (self.session) {
         [self.session invalidateAndCancel];
     }
-
+    
     sessionConfiguration.timeoutIntervalForRequest = self.downloadTimeout;
 
     /**
@@ -122,6 +128,7 @@
      *  We send nil as delegate queue so that the session creates a serial operation queue for performing all delegate
      *  method calls and completion handler calls.
      */
+    //创建下载NSURLSession
     self.session = [NSURLSession sessionWithConfiguration:sessionConfiguration
                                                  delegate:self
                                             delegateQueue:nil];
@@ -146,12 +153,15 @@
 }
 
 - (void)setValue:(nullable NSString *)value forHTTPHeaderField:(nullable NSString *)field {
+    //dispatch_semaphore_wait(lock, DISPATCH_TIME_FOREVER);信号量 锁住
     LOCK(self.headersLock);
     if (value) {
+        //设置
         self.HTTPHeaders[field] = value;
     } else {
         [self.HTTPHeaders removeObjectForKey:field];
     }
+    //dispatch_semaphore_signal(lock) 解锁
     UNLOCK(self.headersLock);
 }
 
@@ -193,13 +203,15 @@
     }
 }
 
+// 核心方法 返回SDWebImageDownloadToken，里面包含操作，操作标示，url，取消方法
 - (nullable SDWebImageDownloadToken *)downloadImageWithURL:(nullable NSURL *)url
                                                    options:(SDWebImageDownloaderOptions)options
                                                   progress:(nullable SDWebImageDownloaderProgressBlock)progressBlock
                                                  completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock {
     __weak SDWebImageDownloader *wself = self;
-
+    
     return [self addProgressCallback:progressBlock completedBlock:completedBlock forURL:url createCallback:^SDWebImageDownloaderOperation *{
+        //没有对应操作，创建操作
         __strong __typeof (wself) sself = wself;
         NSTimeInterval timeoutInterval = sself.downloadTimeout;
         if (timeoutInterval == 0.0) {
@@ -208,6 +220,7 @@
 
         // In order to prevent from potential duplicate caching (NSURLCache + SDImageCache) we disable the cache for image requests if told otherwise
         NSURLRequestCachePolicy cachePolicy = options & SDWebImageDownloaderUseNSURLCache ? NSURLRequestUseProtocolCachePolicy : NSURLRequestReloadIgnoringLocalCacheData;
+        //创建下载request及配置
         NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url
                                                                     cachePolicy:cachePolicy
                                                                 timeoutInterval:timeoutInterval];
@@ -220,6 +233,7 @@
         else {
             request.allHTTPHeaderFields = [sself allHTTPHeaderFields];
         }
+        //创建操作
         SDWebImageDownloaderOperation *operation = [[sself.operationClass alloc] initWithRequest:request inSession:sself.session options:options];
         operation.shouldDecompressImages = sself.shouldDecompressImages;
         
@@ -228,19 +242,19 @@
         } else if (sself.username && sself.password) {
             operation.credential = [NSURLCredential credentialWithUser:sself.username password:sself.password persistence:NSURLCredentialPersistenceForSession];
         }
-        
+        //设置队列优先级
         if (options & SDWebImageDownloaderHighPriority) {
             operation.queuePriority = NSOperationQueuePriorityHigh;
         } else if (options & SDWebImageDownloaderLowPriority) {
             operation.queuePriority = NSOperationQueuePriorityLow;
         }
-        
+        //先进后出，添加依赖，最后的依赖于新添加的任务完成
         if (sself.executionOrder == SDWebImageDownloaderLIFOExecutionOrder) {
             // Emulate LIFO execution order by systematically adding new operations as last operation's dependency
             [sself.lastAddedOperation addDependency:operation];
             sself.lastAddedOperation = operation;
         }
-
+        //返回操作
         return operation;
     }];
 }
@@ -266,37 +280,48 @@
                                                    forURL:(nullable NSURL *)url
                                            createCallback:(SDWebImageDownloaderOperation *(^)(void))createCallback {
     // The URL will be used as the key to the callbacks dictionary so it cannot be nil. If it is nil immediately call the completed block with no image or data.
+    //判空
     if (url == nil) {
         if (completedBlock != nil) {
             completedBlock(nil, nil, nil, NO);
         }
         return nil;
     }
-    
+    //信号量  下载队列添加操作上锁
     LOCK(self.operationsLock);
+    //self.URLOperations中获取下载操作  url为key
     SDWebImageDownloaderOperation *operation = [self.URLOperations objectForKey:url];
     if (!operation) {
+        //没有对应操作，创建之
         operation = createCallback();
         __weak typeof(self) wself = self;
+        //操作完成，
         operation.completionBlock = ^{
             __strong typeof(wself) sself = wself;
             if (!sself) {
                 return;
             }
+            //线程安全删除对应操作
             LOCK(sself.operationsLock);
             [sself.URLOperations removeObjectForKey:url];
             UNLOCK(sself.operationsLock);
         };
+        //添加到全局操作字典
         [self.URLOperations setObject:operation forKey:url];
         // Add operation to operation queue only after all configuration done according to Apple's doc.
         // `addOperation:` does not synchronously execute the `operation.completionBlock` so this will not cause deadlock.
+        //下载队列添加操作
         [self.downloadQueue addOperation:operation];
     }
     UNLOCK(self.operationsLock);
 
+    //给操作添加进度block和完成block，返回操作标示downloadOperationCancelToken
+    //typedef void(^SDWebImageDownloaderProgressBlock)(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL);
+    //typedef void(^SDWebImageDownloaderCompletedBlock)(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished);
     id downloadOperationCancelToken = [operation addHandlersForProgress:progressBlock completed:completedBlock];
-    
+    //生成SDWebImageDownloadToken用来管理操作
     SDWebImageDownloadToken *token = [SDWebImageDownloadToken new];
+    //弱引用
     token.downloadOperation = operation;
     token.url = url;
     token.downloadOperationCancelToken = downloadOperationCancelToken;

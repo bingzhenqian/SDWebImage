@@ -78,6 +78,7 @@
 
     }
     [SDWebImageManager.sharedManager.imageDownloader setValue:@"SDWebImage Demo" forHTTPHeaderField:@"AppName"];
+    //下载操作以后进先出顺序执行
     SDWebImageManager.sharedManager.imageDownloader.executionOrder = SDWebImageDownloaderLIFOExecutionOrder;
     return self;
 }
@@ -87,7 +88,8 @@
     [SDWebImageManager.sharedManager.imageCache clearMemory];
     [SDWebImageManager.sharedManager.imageCache clearDiskOnCompletion:nil];
 }
-							
+
+//支持方向
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
 {
     return (interfaceOrientation != UIInterfaceOrientationPortraitUpsideDown);
@@ -119,7 +121,7 @@
         cell = [[MyCustomTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
         cell.customImageView.sd_imageTransition = SDWebImageTransition.fadeTransition;
     }
-
+    //
     [cell.customImageView sd_setShowActivityIndicatorView:YES];
     [cell.customImageView sd_setIndicatorStyle:UIActivityIndicatorViewStyleGray];
     

@@ -41,7 +41,7 @@
     [animatedImage addRepresentation:imageRep];
     return animatedImage;
 #else
-    
+    //获取图片张数
     CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
     if (!source) {
         return nil;
@@ -49,23 +49,27 @@
     size_t count = CGImageSourceGetCount(source);
     
     UIImage *animatedImage;
-    
+    //图片<=1，直接转换
     if (count <= 1) {
         animatedImage = [[UIImage alloc] initWithData:data];
     } else {
+        //否则
         NSMutableArray<SDWebImageFrame *> *frames = [NSMutableArray array];
         
         for (size_t i = 0; i < count; i++) {
+            //取出每一张图片
             CGImageRef imageRef = CGImageSourceCreateImageAtIndex(source, i, NULL);
             if (!imageRef) {
                 continue;
             }
-            
+            //总的时间
             float duration = [self sd_frameDurationAtIndex:i source:source];
+            //生成UIImage
             UIImage *image = [[UIImage alloc] initWithCGImage:imageRef];
             CGImageRelease(imageRef);
-            
+            //动画对象
             SDWebImageFrame *frame = [SDWebImageFrame frameWithImage:image duration:duration];
+            //添加到frames数组中
             [frames addObject:frame];
         }
         

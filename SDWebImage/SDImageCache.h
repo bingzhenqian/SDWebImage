@@ -5,7 +5,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//缓存逻辑，    NSCache，磁盘读写，清理旧文件
 #import <Foundation/Foundation.h>
 #import "SDWebImageCompat.h"
 #import "SDImageCacheConfig.h"

@@ -6,7 +6,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//
 #import <Foundation/Foundation.h>
 #import "SDWebImageCompat.h"
 
@@ -29,6 +29,8 @@ typedef NS_ENUM(NSInteger, SDImageFormat) {
  *
  *  @return the image format as `SDImageFormat` (enum)
  */
+
+//// 返回图片类型
 + (SDImageFormat)sd_imageFormatForImageData:(nullable NSData *)data;
 
 /**
@@ -37,6 +39,7 @@ typedef NS_ENUM(NSInteger, SDImageFormat) {
  @param format Format as SDImageFormat
  @return The UTType as CFStringRef
  */
+//返回图片类型 kUTTypeImage
 + (nonnull CFStringRef)sd_UTTypeFromSDImageFormat:(SDImageFormat)format;
 
 @end

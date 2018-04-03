@@ -5,7 +5,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//下载操作
 #import <Foundation/Foundation.h>
 #import "SDWebImageDownloader.h"
 #import "SDWebImageOperation.h"
@@ -46,20 +46,23 @@ FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadFinishNotification
 /**
  * The request used by the operation's task.
  */
+//下载请求
 @property (strong, nonatomic, readonly, nullable) NSURLRequest *request;
 
 /**
  * The operation's task
  */
+//下载task
 @property (strong, nonatomic, readonly, nullable) NSURLSessionTask *dataTask;
 
-
+//下载后是否需要解压搜
 @property (assign, nonatomic) BOOL shouldDecompressImages;
 
 /**
  *  Was used to determine whether the URL connection should consult the credential storage for authenticating the connection.
  *  @deprecated Not used for a couple of versions
  */
+//废弃
 @property (nonatomic, assign) BOOL shouldUseCredentialStorage __deprecated_msg("Property deprecated. Does nothing. Kept only for backwards compatibility");
 
 /**
@@ -72,6 +75,7 @@ FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadFinishNotification
 /**
  * The SDWebImageDownloaderOptions for the receiver.
  */
+//下载选项 优先级，后台，缓存
 @property (assign, nonatomic, readonly) SDWebImageDownloaderOptions options;
 
 /**
