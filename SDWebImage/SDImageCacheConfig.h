@@ -15,22 +15,26 @@
  * Decompressing images that are downloaded and cached can improve performance but can consume lot of memory.
  * Defaults to YES. Set this to NO if you are experiencing a crash due to excessive memory consumption.
  */
+//是否压缩
 @property (assign, nonatomic) BOOL shouldDecompressImages;
 
 /**
  * disable iCloud backup [defaults to YES]
  */
+//是否用iCloud
 @property (assign, nonatomic) BOOL shouldDisableiCloud;
 
 /**
  * use memory cache [defaults to YES]
  */
+//是否缓存到内存中
 @property (assign, nonatomic) BOOL shouldCacheImagesInMemory;
 
 /**
  * The reading options while reading cache from disk.
  * Defaults to 0. You can set this to `NSDataReadingMappedIfSafe` to improve performance.
  */
+
 @property (assign, nonatomic) NSDataReadingOptions diskCacheReadingOptions;
 
 /**
@@ -42,11 +46,13 @@
 /**
  * The maximum length of time to keep an image in the cache, in seconds.
  */
+//最大缓存时间，默认一周
 @property (assign, nonatomic) NSInteger maxCacheAge;
 
 /**
  * The maximum size of the cache, in bytes.
  */
+//最大缓存尺寸
 @property (assign, nonatomic) NSUInteger maxCacheSize;
 
 @end

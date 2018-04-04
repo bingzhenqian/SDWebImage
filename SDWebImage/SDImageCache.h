@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 #import "SDWebImageCompat.h"
 #import "SDImageCacheConfig.h"
-
+//NSCache
 typedef NS_ENUM(NSInteger, SDImageCacheType) {
     /**
      * The image wasn't available the SDWebImage caches, but was downloaded from the web.
@@ -59,11 +59,13 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 /**
  * The maximum "total cost" of the in-memory image cache. The cost function is the number of pixels held in memory.
  */
+//最大缓存
 @property (assign, nonatomic) NSUInteger maxMemoryCost;
 
 /**
  * The maximum number of objects the cache should hold.
  */
+//最大缓存数量
 @property (assign, nonatomic) NSUInteger maxMemoryCountLimit;
 
 #pragma mark - Singleton and initialization
@@ -73,6 +75,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @return SDImageCache global instance
  */
+//单例
 + (nonnull instancetype)sharedImageCache;
 
 /**
@@ -80,6 +83,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @param ns The namespace to use for this cache store
  */
+//通过name来初始化
 - (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns;
 
 /**
@@ -101,6 +105,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @param path The path to use for this read-only cache path
  */
+//添加路径用来搜索图片缓存
 - (void)addReadOnlyCachePath:(nonnull NSString *)path;
 
 #pragma mark - Store Ops
@@ -112,6 +117,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  * @param key             The unique image cache key, usually it's image absolute URL
  * @param completionBlock A block executed after the operation is finished
  */
+//store 将图像异步保存到缓存和内存中
 - (void)storeImage:(nullable UIImage *)image
             forKey:(nullable NSString *)key
         completion:(nullable SDWebImageNoParamsBlock)completionBlock;
@@ -165,6 +171,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *  @param completionBlock the block to be executed when the check is done.
  *  @note the completion block will be always executed on the main queue
  */
+//获取图片
 - (void)diskImageExistsWithKey:(nullable NSString *)key completion:(nullable SDWebImageCheckCacheCompletionBlock)completionBlock;
 
 /**
@@ -182,6 +189,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @return a NSOperation instance containing the cache op
  */
+//异步查询图片是否存在
 - (nullable NSOperation *)queryCacheOperationForKey:(nullable NSString *)key done:(nullable SDCacheQueryCompletedBlock)doneBlock;
 
 /**
@@ -200,6 +208,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @param key The unique key used to store the image
  */
+//同步在内存中查询图片
 - (nullable UIImage *)imageFromMemoryCacheForKey:(nullable NSString *)key;
 
 /**
@@ -207,6 +216,8 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @param key The unique key used to store the image
  */
+//同步在disk中查询图片
+
 - (nullable UIImage *)imageFromDiskCacheForKey:(nullable NSString *)key;
 
 /**
@@ -214,6 +225,8 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
  *
  * @param key The unique key used to store the image
  */
+//同步查询图片 memory and or disk
+
 - (nullable UIImage *)imageFromCacheForKey:(nullable NSString *)key;
 
 #pragma mark - Remove Ops
@@ -240,12 +253,14 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 /**
  * Clear all memory cached images
  */
+//清空内存
 - (void)clearMemory;
 
 /**
  * Async clear all disk cached images. Non-blocking method - returns immediately.
  * @param completion    A block that should be executed after cache expiration completes (optional)
  */
+//清空disk
 - (void)clearDiskOnCompletion:(nullable SDWebImageNoParamsBlock)completion;
 
 /**

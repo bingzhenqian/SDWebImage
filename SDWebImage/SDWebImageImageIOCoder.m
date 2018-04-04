@@ -5,7 +5,8 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//参考 https://www.jianshu.com/p/9322acb7a7b1
+//http://honglu.me/2016/09/02/%E4%B8%80%E5%BC%A0%E5%9B%BE%E7%89%87%E5%BC%95%E5%8F%91%E7%9A%84%E6%B7%B1%E6%80%9D/?utm_source=tuicool
 #import "SDWebImageImageIOCoder.h"
 #import "SDWebImageCoderHelper.h"
 #import "NSImage+WebCache.h"
@@ -190,7 +191,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     
     return image;
 }
-
+//解压图片
 - (UIImage *)decompressedImageWithImage:(UIImage *)image
                                    data:(NSData *__autoreleasing  _Nullable *)data
                                 options:(nullable NSDictionary<NSString*, NSObject*>*)optionsDict {
@@ -226,6 +227,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
 }
 
 #if SD_UIKIT || SD_WATCH
+//解码图片代码
 - (nullable UIImage *)sd_decompressedImageWithImage:(nullable UIImage *)image {
     if (![[self class] shouldDecodeImage:image]) {
         return image;
@@ -236,14 +238,16 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     @autoreleasepool{
         
         CGImageRef imageRef = image.CGImage;
+        //颜色空间
         CGColorSpaceRef colorspaceRef = [[self class] colorSpaceForImageRef:imageRef];
-        
+        //宽 高
         size_t width = CGImageGetWidth(imageRef);
         size_t height = CGImageGetHeight(imageRef);
         
         // kCGImageAlphaNone is not supported in CGBitmapContextCreate.
         // Since the original image here has no alpha info, use kCGImageAlphaNoneSkipLast
         // to create bitmap graphics contexts without alpha info.
+        //创建没有透明因素的位图  bitmapInfo参数 kCGBitmapByteOrderDefault|kCGImageAlphaNoneSkipLast
         CGContextRef context = CGBitmapContextCreate(NULL,
                                                      width,
                                                      height,
@@ -256,9 +260,12 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
         }
         
         // Draw the image into the context and retrieve the new bitmap image without alpha
+        //绘制图象
         CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
         CGImageRef imageRefWithoutAlpha = CGBitmapContextCreateImage(context);
+        //从位图获取image
         UIImage *imageWithoutAlpha = [[UIImage alloc] initWithCGImage:imageRefWithoutAlpha scale:image.scale orientation:image.imageOrientation];
+        //CG释放
         CGContextRelease(context);
         CGImageRelease(imageRefWithoutAlpha);
         
@@ -266,12 +273,15 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     }
 }
 
+//压缩图片
 - (nullable UIImage *)sd_decompressedAndScaledDownImageWithImage:(nullable UIImage *)image {
+    //图片是否解码
     if (![[self class] shouldDecodeImage:image]) {
         return image;
     }
-    
+    //需不需要压缩
     if (![[self class] shouldScaleDownImage:image]) {
+        //解码
         return [self sd_decompressedImageWithImage:image];
     }
     
@@ -280,26 +290,31 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     // autorelease the bitmap context and all vars to help system to free memory when there are memory warning.
     // on iOS7, do not forget to call [[SDImageCache sharedImageCache] clearMemory];
     @autoreleasepool {
+        //数据信息
         CGImageRef sourceImageRef = image.CGImage;
-        
+        //计算原图像素
         CGSize sourceResolution = CGSizeZero;
         sourceResolution.width = CGImageGetWidth(sourceImageRef);
         sourceResolution.height = CGImageGetHeight(sourceImageRef);
+        //总像素
         float sourceTotalPixels = sourceResolution.width * sourceResolution.height;
         // Determine the scale ratio to apply to the input image
         // that results in an output image of the defined size.
         // see kDestImageSizeMB, and how it relates to destTotalPixels.
+        //压缩比
         float imageScale = kDestTotalPixels / sourceTotalPixels;
         CGSize destResolution = CGSizeZero;
+        //目标像素
         destResolution.width = (int)(sourceResolution.width*imageScale);
         destResolution.height = (int)(sourceResolution.height*imageScale);
-        
+        //当前颜色空间
         // current color space
         CGColorSpaceRef colorspaceRef = [[self class] colorSpaceForImageRef:sourceImageRef];
         
         // kCGImageAlphaNone is not supported in CGBitmapContextCreate.
         // Since the original image here has no alpha info, use kCGImageAlphaNoneSkipLast
         // to create bitmap graphics contexts without alpha info.
+        //计算并创建目标图像内存的位图
         destContext = CGBitmapContextCreate(NULL,
                                             destResolution.width,
                                             destResolution.height,
@@ -311,6 +326,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
         if (destContext == NULL) {
             return image;
         }
+        //设置压缩质量
         CGContextSetInterpolationQuality(destContext, kCGInterpolationHigh);
         
         // Now define the size of the rectangle to be used for the
@@ -337,8 +353,10 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
         destTile.origin.x = 0.0f;
         // The source seem overlap is proportionate to the destination seem overlap.
         // this is the amount of pixels to overlap each tile as we assemble the ouput image.
+        //计算原图像方块与方块重叠的像素大小 sourceSeemOverlap
         float sourceSeemOverlap = (int)((kDestSeemOverlap/destResolution.height)*sourceResolution.height);
         CGImageRef sourceTileImageRef;
+        //计算原图像需要被分割成多少个方块 iterations
         // calculate the number of read/write operations required to assemble the
         // output image.
         int iterations = (int)( sourceResolution.height / sourceTile.size.height );
@@ -349,6 +367,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
             iterations++;
         }
         // Add seem overlaps to the tiles, but save the original tile height for y coordinate calculations.
+        //根据重叠像素计算原图方块的大小后，获取原图中该方块内的数据，把该数据写入到相对应的目标方块中
         float sourceTileHeightMinusOverlap = sourceTile.size.height;
         sourceTile.size.height += sourceSeemOverlap;
         destTile.size.height += kDestSeemOverlap;
@@ -367,7 +386,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
                 CGImageRelease( sourceTileImageRef );
             }
         }
-        
+        //返回目标图像
         CGImageRef destImageRef = CGBitmapContextCreateImage(destContext);
         CGContextRelease(destContext);
         if (destImageRef == NULL) {
@@ -549,6 +568,7 @@ static const CGFloat kDestSeemOverlap = 2.0f;   // the numbers of pixels to over
     sourceResolution.width = CGImageGetWidth(sourceImageRef);
     sourceResolution.height = CGImageGetHeight(sourceImageRef);
     float sourceTotalPixels = sourceResolution.width * sourceResolution.height;
+    //超过最大支持压缩图像源的大小，需要压缩
     float imageScale = kDestTotalPixels / sourceTotalPixels;
     if (imageScale < 1) {
         shouldScaleDown = YES;

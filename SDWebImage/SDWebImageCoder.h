@@ -78,6 +78,7 @@ CG_EXTERN BOOL SDCGImageRefContainsAlpha(_Nullable CGImageRef imageRef);
  @param format The image format
  @return YES if this coder can encode the image, NO otherwise
  */
+//不适合解码的条件 1.image不存在 2.image.images有值 3.image.alpha<1
 - (BOOL)canEncodeToFormat:(SDImageFormat)format;
 
 /**

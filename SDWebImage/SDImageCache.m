@@ -10,10 +10,11 @@
 #import <CommonCrypto/CommonDigest.h>
 #import "NSImage+WebCache.h"
 #import "SDWebImageCodersManager.h"
-
+//锁住线程
 #define LOCK(lock) dispatch_semaphore_wait(lock, DISPATCH_TIME_FOREVER);
+//解锁
 #define UNLOCK(lock) dispatch_semaphore_signal(lock);
-
+//内联函数  SDCacheCostForImage()获取图片内存大小
 FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 #if SD_MAC
     return image.size.height * image.size.width;
@@ -31,6 +32,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 @interface SDMemoryCache <KeyType, ObjectType> ()
 
 @property (nonatomic, strong, nonnull) NSMapTable<KeyType, ObjectType> *weakCache; // strong-weak cache
+
 @property (nonatomic, strong, nonnull) dispatch_semaphore_t weakCacheLock; // a lock to keep the access to `weakCache` thread-safe
 
 @end
@@ -42,6 +44,8 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 #if SD_UIKIT
 
 - (void)dealloc {
+    //移除通知
+    
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
 }
 
@@ -53,6 +57,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         // At this case, we can sync weak cache back and do not need to load from disk cache
         self.weakCache = [[NSMapTable alloc] initWithKeyOptions:NSPointerFunctionsStrongMemory valueOptions:NSPointerFunctionsWeakMemory capacity:0];
         self.weakCacheLock = dispatch_semaphore_create(1);
+        //添加观察者
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(didReceiveMemoryWarning:)
                                                      name:UIApplicationDidReceiveMemoryWarningNotification
@@ -260,20 +265,24 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
             forKey:(nullable NSString *)key
             toDisk:(BOOL)toDisk
         completion:(nullable SDWebImageNoParamsBlock)completionBlock {
+    //image 或者key不存在，回调 key为absolute URL
     if (!image || !key) {
         if (completionBlock) {
             completionBlock();
         }
         return;
     }
-    // if memory cache is enabled
+    // if memory cache is enabled 是否需要缓存到内存中
     if (self.config.shouldCacheImagesInMemory) {
         NSUInteger cost = SDCacheCostForImage(image);
+        //内存缓存保存image
         [self.memCache setObject:image forKey:key cost:cost];
     }
-    
+    //需要保存到硬盘
     if (toDisk) {
+        //异步串行
         dispatch_async(self.ioQueue, ^{
+            //锁
             @autoreleasepool {
                 NSData *data = imageData;
                 if (!data && image) {
@@ -284,11 +293,13 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
                     } else {
                         format = SDImageFormatJPEG;
                     }
+                    //解码
                     data = [[SDWebImageCodersManager sharedInstance] encodedDataWithImage:image format:format];
                 }
+                //保存到硬盘
                 [self _storeImageDataToDisk:data forKey:key];
             }
-            
+            //主线程回调完成
             if (completionBlock) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     completionBlock();
