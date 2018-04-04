@@ -10,10 +10,10 @@
 #import "SDWebImageDownloader.h"
 #import "SDWebImageOperation.h"
 
-FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStartNotification;
-FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadReceiveResponseNotification;
-FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStopNotification;
-FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadFinishNotification;
+FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStartNotification;//任务开始
+FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadReceiveResponseNotification;//接受到数据
+FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStopNotification;//暂停
+FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadFinishNotification;//完成
 
 
 
@@ -22,18 +22,19 @@ FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadFinishNotification
  For the description about these methods, see `SDWebImageDownloaderOperation`
  */
 @protocol SDWebImageDownloaderOperationInterface<NSObject>
-
+//初始化
 - (nonnull instancetype)initWithRequest:(nullable NSURLRequest *)request
                               inSession:(nullable NSURLSession *)session
                                 options:(SDWebImageDownloaderOptions)options;
-
+//添加回调
 - (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock
                             completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock;
-
+//是否需要解压图片
 - (BOOL)shouldDecompressImages;
 - (void)setShouldDecompressImages:(BOOL)value;
 
 - (nullable NSURLCredential *)credential;
+//设置是否需要设置凭证
 - (void)setCredential:(nullable NSURLCredential *)value;
 
 - (BOOL)cancel:(nullable id)token;

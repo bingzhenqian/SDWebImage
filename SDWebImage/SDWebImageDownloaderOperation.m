@@ -10,7 +10,7 @@
 #import "SDWebImageManager.h"
 #import "NSImage+WebCache.h"
 #import "SDWebImageCodersManager.h"
-
+//http://www.cnblogs.com/machao/p/6248111.html
 #define LOCK(lock) dispatch_semaphore_wait(lock, DISPATCH_TIME_FOREVER);
 #define UNLOCK(lock) dispatch_semaphore_signal(lock);
 
@@ -38,6 +38,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 @property (assign, nonatomic, getter = isExecuting) BOOL executing;
 @property (assign, nonatomic, getter = isFinished) BOOL finished;
 @property (strong, nonatomic, nullable) NSMutableData *imageData;
+//缓存数据
 @property (copy, nonatomic, nullable) NSData *cachedData; // for `SDWebImageDownloaderIgnoreCachedResponse`
 
 // This is weak because it is injected by whoever manages this session. If this gets nil-ed out, we won't be able to run
@@ -45,9 +46,9 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 @property (weak, nonatomic, nullable) NSURLSession *unownedSession;
 // This is set if we're using not using an injected NSURLSession. We're responsible of invalidating this one
 @property (strong, nonatomic, nullable) NSURLSession *ownedSession;
-
+//下载任务
 @property (strong, nonatomic, readwrite, nullable) NSURLSessionTask *dataTask;
-
+//回调锁
 @property (strong, nonatomic, nonnull) dispatch_semaphore_t callbacksLock; // a lock to keep the access to `callbackBlocks` thread-safe
 
 @property (strong, nonatomic, nonnull) dispatch_queue_t coderQueue; // the queue to do image decoding
@@ -75,6 +76,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
         _request = [request copy];
         _shouldDecompressImages = YES;
         _options = options;
+        //存放SDCallbacksDictionary类型数据 ，键为kProgressCallbackKey和kCompletedCallbackKey
         _callbackBlocks = [NSMutableArray new];
         _executing = NO;
         _finished = NO;
@@ -103,9 +105,19 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 - (nullable NSArray<id> *)callbacksForKey:(NSString *)key {
     LOCK(self.callbacksLock);
     //取出key对应的回调
+    /**
+     @[@{@"completed" : Block1},
+  @{@"progress" : Block2},
+  @{@"completed" : Block3},
+  @{@"progress" : Block4},
+  @{@"completed" : Block5},
+  @{@"progress" : Block6}]
+     调用[self.callbackBlocks valueForKey:@"progress"]后会得到[Block2, Block4, Block6].
+     */
     NSMutableArray<id> *callbacks = [[self.callbackBlocks valueForKey:key] mutableCopy];
     UNLOCK(self.callbacksLock);
     // We need to remove [NSNull null] because there might not always be a progress block for each callback
+    //removeObjectIdenticalTo:这个方法会移除数组中指定相同地址的元素。
     [callbacks removeObjectIdenticalTo:[NSNull null]];
     return [callbacks copy]; // strip mutability here
 }
@@ -113,6 +125,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 - (BOOL)cancel:(nullable id)token {
     BOOL shouldCancel = NO;
     LOCK(self.callbacksLock);
+    //取消回调 移除地址为token的对象
     [self.callbackBlocks removeObjectIdenticalTo:token];
     if (self.callbackBlocks.count == 0) {
         shouldCancel = YES;
@@ -126,15 +139,17 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 
 - (void)start {
     @synchronized (self) {
-        //重置
+        
         if (self.isCancelled) {
+            //如果已经设置为取消
             self.finished = YES;
+            //重置
             [self reset];
             return;
         }
 
 #if SD_UIKIT
-        
+
         Class UIApplicationClass = NSClassFromString(@"UIApplication");
         BOOL hasApplication = UIApplicationClass && [UIApplicationClass respondsToSelector:@selector(sharedApplication)];
         //可以后台下载
@@ -153,6 +168,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
             }];
         }
 #endif
+        //unownedSession为空，就创建NSURLSession对象
         NSURLSession *session = self.unownedSession;
         if (!session) {
             NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
@@ -168,15 +184,18 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
                                                delegateQueue:nil];
             self.ownedSession = session;
         }
-        
+        ////下载选项 优先级，后台，缓存&缓存
         if (self.options & SDWebImageDownloaderIgnoreCachedResponse) {
             // Grab the cached data for later check
+            //新建NSURLCache
             NSURLCache *URLCache = session.configuration.URLCache;
             if (!URLCache) {
                 URLCache = [NSURLCache sharedURLCache];
             }
+            //cachedResponse
             NSCachedURLResponse *cachedResponse;
             // NSURLCache's `cachedResponseForRequest:` is not thread-safe, see https://developer.apple.com/documentation/foundation/nsurlcache#2317483
+            //给指定的URL请求返回缓存中的缓存URL响应  加锁
             @synchronized (URLCache) {
                 cachedResponse = [URLCache cachedResponseForRequest:self.request];
             }
@@ -192,6 +211,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
     if (self.dataTask) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability"
+        //设置优先级
         if ([self.dataTask respondsToSelector:@selector(setPriority:)]) {
             if (self.options & SDWebImageDownloaderHighPriority) {
                 self.dataTask.priority = NSURLSessionTaskPriorityHigh;
@@ -205,14 +225,17 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
             progressBlock(0, NSURLResponseUnknownLength, self.request.URL);
         }
         __weak typeof(self) weakSelf = self;
+        //主线程发通知 开始下载
         dispatch_async(dispatch_get_main_queue(), ^{
             [[NSNotificationCenter defaultCenter] postNotificationName:SDWebImageDownloadStartNotification object:weakSelf];
         });
     } else {
+        //错误处理
         [self callCompletionBlocksWithError:[NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorUnknown userInfo:@{NSLocalizedDescriptionKey : @"Task can't be initialized"}]];
         [self done];
         return;
     }
+    //开启后，确保关闭后台任务
 
 #if SD_UIKIT
     Class UIApplicationClass = NSClassFromString(@"UIApplication");
@@ -293,6 +316,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
           dataTask:(NSURLSessionDataTask *)dataTask
 didReceiveResponse:(NSURLResponse *)response
  completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
+    //继续接收
     NSURLSessionResponseDisposition disposition = NSURLSessionResponseAllow;
     NSInteger expected = (NSInteger)response.expectedContentLength;
     expected = expected > 0 ? expected : 0;

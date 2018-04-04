@@ -138,7 +138,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 @implementation SDImageCache
 
 #pragma mark - Singleton, init, dealloc
-
+//单例
 + (nonnull instancetype)sharedImageCache {
     static dispatch_once_t once;
     static id instance;
@@ -153,7 +153,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 - (nonnull instancetype)initWithNamespace:(nonnull NSString *)ns {
+    //磁盘存储路径 文件cache目录
     NSString *path = [self makeDiskCachePath:ns];
+    //初始化cache类
     return [self initWithNamespace:ns diskCacheDirectory:path];
 }
 
@@ -163,8 +165,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         NSString *fullNamespace = [@"com.hackemist.SDWebImageCache." stringByAppendingString:ns];
         
         // Create IO serial queue
+        //创建串行队列
         _ioQueue = dispatch_queue_create("com.hackemist.SDWebImageCache", DISPATCH_QUEUE_SERIAL);
-        
+        //默认配置
         _config = [[SDImageCacheConfig alloc] init];
         
         // Init the memory cache
@@ -185,6 +188,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
 #if SD_UIKIT
         // Subscribe to app events
+        //添加通知 即将终止，退到后台
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(deleteOldFiles)
                                                      name:UIApplicationWillTerminateNotification
@@ -205,7 +209,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 #pragma mark - Cache paths
-
+//添加自定义路径 self.customPaths
 - (void)addReadOnlyCachePath:(nonnull NSString *)path {
     if (!self.customPaths) {
         self.customPaths = [NSMutableArray new];
@@ -215,16 +219,16 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         [self.customPaths addObject:path];
     }
 }
-
+//拼接路径
 - (nullable NSString *)cachePathForKey:(nullable NSString *)key inPath:(nonnull NSString *)path {
     NSString *filename = [self cachedFileNameForKey:key];
     return [path stringByAppendingPathComponent:filename];
 }
-
+//默认图片路径
 - (nullable NSString *)defaultCachePathForKey:(nullable NSString *)key {
     return [self cachePathForKey:key inPath:self.diskCachePath];
 }
-
+//文件名 （MD5）
 - (nullable NSString *)cachedFileNameForKey:(nullable NSString *)key {
     const char *str = key.UTF8String;
     if (str == NULL) {
@@ -259,7 +263,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         completion:(nullable SDWebImageNoParamsBlock)completionBlock {
     [self storeImage:image imageData:nil forKey:key toDisk:toDisk completion:completionBlock];
 }
-
+//保存图片
 - (void)storeImage:(nullable UIImage *)image
          imageData:(nullable NSData *)imageData
             forKey:(nullable NSString *)key
@@ -312,11 +316,12 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         }
     }
 }
-
+//保存数据到disk
 - (void)storeImageDataToDisk:(nullable NSData *)imageData forKey:(nullable NSString *)key {
     if (!imageData || !key) {
         return;
     }
+    //串行同步队列
     dispatch_sync(self.ioQueue, ^{
         [self _storeImageDataToDisk:imageData forKey:key];
     });
@@ -327,42 +332,49 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     if (!imageData || !key) {
         return;
     }
-    
+    //文件或目录是否存在
     if (![self.fileManager fileExistsAtPath:_diskCachePath]) {
+        //不存在创建
         [self.fileManager createDirectoryAtPath:_diskCachePath withIntermediateDirectories:YES attributes:nil error:NULL];
     }
     
     // get cache Path for image key
+    //默认路径
     NSString *cachePathForKey = [self defaultCachePathForKey:key];
     // transform to NSUrl
     NSURL *fileURL = [NSURL fileURLWithPath:cachePathForKey];
-    
+    //写入数据
     [imageData writeToURL:fileURL options:self.config.diskCacheWritingOptions error:nil];
     
     // disable iCloud backup
+    //根据配置文件设置是否禁用iCloud的备份功能
     if (self.config.shouldDisableiCloud) {
         [fileURL setResourceValue:@YES forKey:NSURLIsExcludedFromBackupKey error:nil];
     }
 }
+//查询并取回
 
 #pragma mark - Query and Retrieve Ops
-
+//查询图片
 - (void)diskImageExistsWithKey:(nullable NSString *)key completion:(nullable SDWebImageCheckCacheCompletionBlock)completionBlock {
+    //异步串行队列 同一个io队列
     dispatch_async(self.ioQueue, ^{
         BOOL exists = [self _diskImageDataExistsWithKey:key];
         if (completionBlock) {
+            //异步主线程回调
             dispatch_async(dispatch_get_main_queue(), ^{
                 completionBlock(exists);
             });
         }
     });
 }
-
+//查询图片
 - (BOOL)diskImageDataExistsWithKey:(nullable NSString *)key {
     if (!key) {
         return NO;
     }
     __block BOOL exists = NO;
+    //同步串行队列 同一个io队列
     dispatch_sync(self.ioQueue, ^{
         exists = [self _diskImageDataExistsWithKey:key];
     });
@@ -371,6 +383,8 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 // Make sure to call form io queue by caller
+//查询图片
+
 - (BOOL)_diskImageDataExistsWithKey:(nullable NSString *)key {
     if (!key) {
         return NO;
@@ -389,7 +403,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 - (nullable UIImage *)imageFromMemoryCacheForKey:(nullable NSString *)key {
     return [self.memCache objectForKey:key];
 }
-
+//将image放入内存，返回图片
 - (nullable UIImage *)imageFromDiskCacheForKey:(nullable NSString *)key {
     UIImage *diskImage = [self diskImageForKey:key];
     if (diskImage && self.config.shouldCacheImagesInMemory) {
@@ -399,7 +413,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
     return diskImage;
 }
-
+//获取内存数据，没有再获取disk数据
 - (nullable UIImage *)imageFromCacheForKey:(nullable NSString *)key {
     // First check the in-memory cache...
     UIImage *image = [self imageFromMemoryCacheForKey:key];
@@ -411,8 +425,9 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     image = [self imageFromDiskCacheForKey:key];
     return image;
 }
-
+//根据key获取disk中NSData的数据
 - (nullable NSData *)diskImageDataBySearchingAllPathsForKey:(nullable NSString *)key {
+    //先从默认路径查找
     NSString *defaultPath = [self defaultCachePathForKey:key];
     NSData *data = [NSData dataWithContentsOfFile:defaultPath options:self.config.diskCacheReadingOptions error:nil];
     if (data) {
@@ -421,11 +436,12 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
     // fallback because of https://github.com/rs/SDWebImage/pull/976 that added the extension to the disk file name
     // checking the key with and without the extension
+    //从默认路径上一级开始找
     data = [NSData dataWithContentsOfFile:defaultPath.stringByDeletingPathExtension options:self.config.diskCacheReadingOptions error:nil];
     if (data) {
         return data;
     }
-
+    //从自定义路径开始找
     NSArray<NSString *> *customPaths = [self.customPaths copy];
     for (NSString *path in customPaths) {
         NSString *filePath = [self cachePathForKey:key inPath:path];
@@ -444,12 +460,12 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 
     return nil;
 }
-
+//根据key获取UIImage
 - (nullable UIImage *)diskImageForKey:(nullable NSString *)key {
     NSData *data = [self diskImageDataBySearchingAllPathsForKey:key];
     return [self diskImageForKey:key data:data];
 }
-
+//根据NSData获取UIImage
 - (nullable UIImage *)diskImageForKey:(nullable NSString *)key data:(nullable NSData *)data {
     if (data) {
         UIImage *image = [[SDWebImageCodersManager sharedInstance] decodedImageWithData:data];
@@ -470,7 +486,8 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 - (NSOperation *)queryCacheOperationForKey:(NSString *)key done:(SDCacheQueryCompletedBlock)doneBlock {
     return [self queryCacheOperationForKey:key options:0 done:doneBlock];
 }
-
+//查找图片，返回NSOperation对象，可以取消查找任务
+//回调typedef void(^SDCacheQueryCompletedBlock)(UIImage * _Nullable image, NSData * _Nullable data, SDImageCacheType cacheType);
 - (nullable NSOperation *)queryCacheOperationForKey:(nullable NSString *)key options:(SDImageCacheOptions)options done:(nullable SDCacheQueryCompletedBlock)doneBlock {
     if (!key) {
         if (doneBlock) {
@@ -535,7 +552,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 #pragma mark - Remove Ops
-
+//删除图片
 - (void)removeImageForKey:(nullable NSString *)key withCompletion:(nullable SDWebImageNoParamsBlock)completion {
     [self removeImageForKey:key fromDisk:YES withCompletion:completion];
 }
@@ -544,11 +561,11 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     if (key == nil) {
         return;
     }
-
+    //从缓存中删除图片
     if (self.config.shouldCacheImagesInMemory) {
         [self.memCache removeObjectForKey:key];
     }
-
+    //从硬盘中删除图片
     if (fromDisk) {
         dispatch_async(self.ioQueue, ^{
             [self.fileManager removeItemAtPath:[self defaultCachePathForKey:key] error:nil];
@@ -566,7 +583,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 # pragma mark - Mem Cache settings
-
+//设置SDMemoryCache
 - (void)setMaxMemoryCost:(NSUInteger)maxMemoryCost {
     self.memCache.totalCostLimit = maxMemoryCost;
 }
@@ -584,14 +601,18 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 }
 
 #pragma mark - Cache clean Ops
+//清空数据
 
+//清除缓存
 - (void)clearMemory {
     [self.memCache removeAllObjects];
 }
-
+//清空disk数据
 - (void)clearDiskOnCompletion:(nullable SDWebImageNoParamsBlock)completion {
     dispatch_async(self.ioQueue, ^{
+        //删除目录
         [self.fileManager removeItemAtPath:self.diskCachePath error:nil];
+        //创建目录替换
         [self.fileManager createDirectoryAtPath:self.diskCachePath
                 withIntermediateDirectories:YES
                                  attributes:nil
@@ -604,7 +625,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         }
     });
 }
-
+//清空旧数据
 - (void)deleteOldFiles {
     [self deleteOldFilesWithCompletionBlock:nil];
 }
