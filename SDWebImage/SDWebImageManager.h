@@ -16,23 +16,27 @@ typedef NS_OPTIONS(NSUInteger, SDWebImageOptions) {
      * By default, when a URL fail to be downloaded, the URL is blacklisted so the library won't keep trying.
      * This flag disable this blacklisting.
      */
+    //默认情况，下载失败，URL会放入黑名单，此选项让manager可以重新下载
     SDWebImageRetryFailed = 1 << 0,
 
     /**
      * By default, image downloads are started during UI interactions, this flags disable this feature,
      * leading to delayed download on UIScrollView deceleration for instance.
      */
+    //低权限
     SDWebImageLowPriority = 1 << 1,
 
     /**
      * This flag disables on-disk caching after the download finished, only cache in memory
      */
+    //只能放入缓存
     SDWebImageCacheMemoryOnly = 1 << 2,
 
     /**
      * This flag enables progressive download, the image is displayed progressively during download as a browser would do.
      * By default, the image is only displayed once completely downloaded.
      */
+    //添加进度
     SDWebImageProgressiveDownload = 1 << 3,
 
     /**
@@ -43,30 +47,35 @@ typedef NS_OPTIONS(NSUInteger, SDWebImageOptions) {
      *
      * Use this flag only if you can't make your URLs static with embedded cache busting parameter.
      */
+    //刷新缓存
     SDWebImageRefreshCached = 1 << 4,
 
     /**
      * In iOS 4+, continue the download of the image if the app goes to background. This is achieved by asking the system for
      * extra time in background to let the request finish. If the background task expires the operation will be cancelled.
      */
+    //后台下载
     SDWebImageContinueInBackground = 1 << 5,
 
     /**
      * Handles cookies stored in NSHTTPCookieStore by setting
      * NSMutableURLRequest.HTTPShouldHandleCookies = YES;
      */
+    //cookies
     SDWebImageHandleCookies = 1 << 6,
 
     /**
      * Enable to allow untrusted SSL certificates.
      * Useful for testing purposes. Use with caution in production.
      */
+    //支持SSL
     SDWebImageAllowInvalidSSLCertificates = 1 << 7,
 
     /**
      * By default, images are loaded in the order in which they were queued. This flag moves them to
      * the front of the queue.
      */
+    //高权限
     SDWebImageHighPriority = 1 << 8,
     
     /**
@@ -80,6 +89,7 @@ typedef NS_OPTIONS(NSUInteger, SDWebImageOptions) {
      * as most transformation code would mangle it.
      * Use this flag to transform them anyway.
      */
+    /// 使用该属性来自由改变图片，但需要使用transformDownloadedImage delegate
     SDWebImageTransformAnimatedImage = 1 << 10,
     
     /**
@@ -94,6 +104,7 @@ typedef NS_OPTIONS(NSUInteger, SDWebImageOptions) {
      * images to a size compatible with the constrained memory of devices.
      * If `SDWebImageProgressiveDownload` flag is set the scale down is deactivated.
      */
+    //压缩大图片
     SDWebImageScaleDownLargeImages = 1 << 12,
     
     /**
@@ -141,6 +152,7 @@ typedef NSData * _Nullable(^SDWebImageCacheSerializerBlock)(UIImage * _Nonnull i
  *
  * @return Return NO to prevent the downloading of the image on cache misses. If not implemented, YES is implied.
  */
+//没在缓存中发现图片，是否需要下载
 - (BOOL)imageManager:(nonnull SDWebImageManager *)imageManager shouldDownloadImageForURL:(nullable NSURL *)imageURL;
 
 /**
@@ -151,6 +163,7 @@ typedef NSData * _Nullable(^SDWebImageCacheSerializerBlock)(UIImage * _Nonnull i
  @param error The download error for the url
  @return Whether to block this url or not. Return YES to mark this URL as failed.
  */
+//
 - (BOOL)imageManager:(nonnull SDWebImageManager *)imageManager shouldBlockFailedURL:(nonnull NSURL *)imageURL withError:(nonnull NSError *)error;
 
 /**
@@ -163,6 +176,7 @@ typedef NSData * _Nullable(^SDWebImageCacheSerializerBlock)(UIImage * _Nonnull i
  *
  * @return The transformed image object.
  */
+//转换图片
 - (nullable UIImage *)imageManager:(nonnull SDWebImageManager *)imageManager transformDownloadedImage:(nullable UIImage *)image withURL:(nullable NSURL *)imageURL;
 
 @end

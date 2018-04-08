@@ -324,6 +324,8 @@ didReceiveResponse:(NSURLResponse *)response
     self.response = response;
     NSInteger statusCode = [response respondsToSelector:@selector(statusCode)] ? ((NSHTTPURLResponse *)response).statusCode : 200;
     BOOL valid = statusCode < 400;
+    //<400为正常情况
+    //304为响应没有变化，可以从缓存读取
     //'304 Not Modified' is an exceptional one. It should be treated as cancelled if no cache data
     //URLSession current behavior will return 200 status code when the server respond 304 and URLCache hit. But this is not a standard behavior and we just add a check
     if (statusCode == 304 && !self.cachedData) {
@@ -349,10 +351,14 @@ didReceiveResponse:(NSURLResponse *)response
     }
 }
 
+//持续接收数据
+//图片数据没有接收完也能展示部分图片
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
+    
     if (!self.imageData) {
         self.imageData = [[NSMutableData alloc] initWithCapacity:self.expectedSize];
     }
+    //拼接数据
     [self.imageData appendData:data];
 
     if ((self.options & SDWebImageDownloaderProgressiveDownload) && self.expectedSize > 0) {
@@ -361,6 +367,7 @@ didReceiveResponse:(NSURLResponse *)response
         // Get the total bytes downloaded
         const NSInteger totalSize = imageData.length;
         // Get the finish status
+        //判断是否完成
         BOOL finished = (totalSize >= self.expectedSize);
         
         if (!self.progressiveCoder) {
@@ -376,6 +383,7 @@ didReceiveResponse:(NSURLResponse *)response
         
         // progressive decode the image in coder queue
         dispatch_async(self.coderQueue, ^{
+            //增量式将图像数据解码为图像。
             UIImage *image = [self.progressiveCoder incrementallyDecodedImageWithData:imageData finished:finished];
             if (image) {
                 NSString *key = [[SDWebImageManager sharedManager] cacheKeyForURL:self.request.URL];
@@ -385,7 +393,7 @@ didReceiveResponse:(NSURLResponse *)response
                 }
                 
                 // We do not keep the progressive decoding image even when `finished`=YES. Because they are for view rendering but not take full function from downloader options. And some coders implementation may not keep consistent between progressive decoding and normal decoding.
-                
+                //下载回调
                 [self callCompletionBlocksWithImage:image imageData:nil error:nil finished:NO];
             }
         });
@@ -395,7 +403,7 @@ didReceiveResponse:(NSURLResponse *)response
         progressBlock(self.imageData.length, self.expectedSize, self.request.URL);
     }
 }
-
+//
 - (void)URLSession:(NSURLSession *)session
           dataTask:(NSURLSessionDataTask *)dataTask
  willCacheResponse:(NSCachedURLResponse *)proposedResponse

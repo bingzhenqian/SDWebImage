@@ -33,12 +33,13 @@
 
 
 @interface SDWebImageDownloader () <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
-
+//nonnull 不能为空
 @property (strong, nonatomic, nonnull) NSOperationQueue *downloadQueue;//下载队列
-@property (weak, nonatomic, nullable) NSOperation *lastAddedOperation;
-@property (assign, nonatomic, nullable) Class operationClass;
+//nullable 可以为空
+@property (weak, nonatomic, nullable) NSOperation *lastAddedOperation;//最后加入Operation
+@property (assign, nonatomic, nullable) Class operationClass;//自定义的操作类
 @property (strong, nonatomic, nonnull) NSMutableDictionary<NSURL *, SDWebImageDownloaderOperation *> *URLOperations;//全局下载字典
-@property (strong, nonatomic, nullable) SDHTTPHeadersMutableDictionary *HTTPHeaders;
+@property (strong, nonatomic, nullable) SDHTTPHeadersMutableDictionary *HTTPHeaders;//HTTP请求头
 @property (strong, nonatomic, nonnull) dispatch_semaphore_t operationsLock; // a lock to keep the access to `URLOperations` thread-safe
 @property (strong, nonatomic, nonnull) dispatch_semaphore_t headersLock; // a lock to keep the access to `HTTPHeaders` thread-safe
 
@@ -48,6 +49,54 @@
 @end
 
 @implementation SDWebImageDownloader
+/**
+ //http://www.cocoachina.com/ios/20161012/17732.html
+ + (void)load;
+ 对于加入运行期系统的类及分类，必定会调用此方法，且仅调用一次。
+ 
+ iOS会在应用程序启动的时候调用load方法，在main函数之前调用
+ 
+ 执行子类的load方法前，会先执行所有超类的load方法，顺序为父类->子类->分类
+ 
+ 在load方法中使用其他类是不安全的，因为会调用其他类的load方法，而如果关系复杂的话，就无法判断出各个类的载入顺序，类只有初始化完成后，类实例才能进行正常使用
+ 
+ load 方法不遵从继承规则，如果类本身没有实现load方法，那么系统就不会调用，不管父类有没有实现（跟下文的initialize有明显区别）
+ 
+ 尽可能的精简load方法，因为整个应用程序在执行load方法时会阻塞，即，程序会阻塞直到所有类的load方法执行完毕，才会继续
+ 
+ load 方法中最常用的就是方法交换method swizzling
+ */
+/**
+ + (void)initialize;
+ 在首次使用该类之前由运行期系统（非人为）调用，且仅调用一次
+ 
+ 惰性调用，只有当程序使用相关类时，才会调用
+ 
+ 运行期系统会确保initialize方法是在线程安全的环境中执行，即，只有执行initialize的那个线程可以操作类或类实例。其他线程都要先阻塞，等待initialize执行完
+ 
+ 如果类未实现initialize方法，而其超类实现了，那么会运行超类的实现代码，而且会运行两次（load 第5点）
+ 
+ initialize 遵循继承规则
+ 
+ 初始化子类的的时候会先初始化父类，然后会调用父类的initialize方法，而子类没有覆写initialize方法，因此会再次调用父类的实现方法
+ 
+ 鉴于此，initialize方法实现如下：
+ 
+ + (void)initialize {
+ if (self == [People class]) {
+ NSLog(@"%@ initialize", self);
+ }
+ }
+ initialize方法也需要尽量精简，一般只应该用来设置内部数据，比如，某个全局状态无法在编译期初始化，可以放在initialize里面。
+ 
+ static NSMutableArray *kSomeObjects;
+ @implementation People
+ + (void)initialize {
+ if (self == [People class]) {
+ kSomeObjects = [NSMutableArray new];
+ }
+ }
+*/
 
 + (void)initialize {
     // Bind SDNetworkActivityIndicator if available (download it here: http://github.com/rs/SDNetworkActivityIndicator )
@@ -173,6 +222,7 @@
 }
 
 - (nonnull SDHTTPHeadersDictionary *)allHTTPHeaderFields {
+    //dispatch_semaphore_wait(lock, DISPATCH_TIME_FOREVER);信号量 锁住
     LOCK(self.headersLock);
     SDHTTPHeadersDictionary *allHTTPHeaderFields = [self.HTTPHeaders copy];
     UNLOCK(self.headersLock);

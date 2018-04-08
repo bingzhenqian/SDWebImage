@@ -23,6 +23,7 @@
  * @param finishedCount   The total number of images that were prefetched (successful or not)
  * @param totalCount      The total number of images that were to be prefetched
  */
+//当一个图片被预取时调用
 - (void)imagePrefetcher:(nonnull SDWebImagePrefetcher *)imagePrefetcher didPrefetchURL:(nullable NSURL *)imageURL finishedCount:(NSUInteger)finishedCount totalCount:(NSUInteger)totalCount;
 
 /**
@@ -31,6 +32,7 @@
  * @param totalCount      The total number of images that were prefetched (whether successful or not)
  * @param skippedCount    The total number of images that were skipped
  */
+//所有图片都下载完
 - (void)imagePrefetcher:(nonnull SDWebImagePrefetcher *)imagePrefetcher didFinishWithTotalCount:(NSUInteger)totalCount skippedCount:(NSUInteger)skippedCount;
 
 @end

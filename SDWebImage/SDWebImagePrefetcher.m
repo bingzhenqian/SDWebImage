@@ -12,10 +12,10 @@
 
 @property (strong, nonatomic, nonnull) SDWebImageManager *manager;
 @property (strong, atomic, nullable) NSArray<NSURL *> *prefetchURLs; // may be accessed from different queue
-@property (assign, nonatomic) NSUInteger requestedCount;
-@property (assign, nonatomic) NSUInteger skippedCount;
-@property (assign, nonatomic) NSUInteger finishedCount;
-@property (assign, nonatomic) NSTimeInterval startedTime;
+@property (assign, nonatomic) NSUInteger requestedCount;//请求次数
+@property (assign, nonatomic) NSUInteger skippedCount;//失败次数
+@property (assign, nonatomic) NSUInteger finishedCount;//完成次数
+@property (assign, nonatomic) NSTimeInterval startedTime;//开始时间
 @property (copy, nonatomic, nullable) SDWebImagePrefetcherCompletionBlock completionBlock;
 @property (copy, nonatomic, nullable) SDWebImagePrefetcherProgressBlock progressBlock;
 

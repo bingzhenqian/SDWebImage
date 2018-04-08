@@ -9,56 +9,65 @@
 #import <Foundation/Foundation.h>
 #import "SDWebImageCompat.h"
 #import "SDWebImageOperation.h"
-
+//位移枚举
 typedef NS_OPTIONS(NSUInteger, SDWebImageDownloaderOptions) {
     /**
      * Put the download in the low queue priority and task priority.
      */
-    SDWebImageDownloaderLowPriority = 1 << 0,
+    //下载放在低优先级
+    SDWebImageDownloaderLowPriority = 1 << 0,//1
     
     /**
      * This flag enables progressive download, the image is displayed progressively during download as a browser would do.
      */
-    SDWebImageDownloaderProgressiveDownload = 1 << 1,
+    //渐进下载，图片渐进显示
+    SDWebImageDownloaderProgressiveDownload = 1 << 1,//2
 
     /**
      * By default, request prevent the use of NSURLCache. With this flag, NSURLCache
      * is used with default policies.
      */
-    SDWebImageDownloaderUseNSURLCache = 1 << 2,
+    //默认情况，请求避免使用NSURLCache，有这个标示，请求使用NSURLCache
+    SDWebImageDownloaderUseNSURLCache = 1 << 2,//4
 
     /**
      * Call completion block with nil image/imageData if the image was read from NSURLCache
      * (to be combined with `SDWebImageDownloaderUseNSURLCache`).
      */
-    SDWebImageDownloaderIgnoreCachedResponse = 1 << 3,
+    
+    SDWebImageDownloaderIgnoreCachedResponse = 1 << 3,//二进制1000  8
     
     /**
      * In iOS 4+, continue the download of the image if the app goes to background. This is achieved by asking the system for
      * extra time in background to let the request finish. If the background task expires the operation will be cancelled.
      */
+    //iOS4+，后台继续下载图片
     SDWebImageDownloaderContinueInBackground = 1 << 4,
 
     /**
      * Handles cookies stored in NSHTTPCookieStore by setting 
      * NSMutableURLRequest.HTTPShouldHandleCookies = YES;
      */
+    // 使用Cookies
     SDWebImageDownloaderHandleCookies = 1 << 5,
 
     /**
      * Enable to allow untrusted SSL certificates.
      * Useful for testing purposes. Use with caution in production.
      */
+    // 允许验证SSL
     SDWebImageDownloaderAllowInvalidSSLCertificates = 1 << 6,
 
     /**
      * Put the download in the high queue priority and task priority.
      */
+    // 高权限
     SDWebImageDownloaderHighPriority = 1 << 7,
     
     /**
      * Scale down the image
      */
+    //裁剪大图片
     SDWebImageDownloaderScaleDownLargeImages = 1 << 8,
 };
 
@@ -73,14 +82,15 @@ typedef NS_ENUM(NSInteger, SDWebImageDownloaderExecutionOrder) {
      */
     SDWebImageDownloaderLIFOExecutionOrder//后进先出  栈
 };
-
+//extern 通知key
 FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStartNotification;
 FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadStopNotification;
 
+//进度block
 typedef void(^SDWebImageDownloaderProgressBlock)(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL);
-
+//完成block
 typedef void(^SDWebImageDownloaderCompletedBlock)(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished);
-
+//字典
 typedef NSDictionary<NSString *, NSString *> SDHTTPHeadersDictionary;
 typedef NSMutableDictionary<NSString *, NSString *> SDHTTPHeadersMutableDictionary;
 
@@ -89,16 +99,19 @@ typedef SDHTTPHeadersDictionary * _Nullable (^SDWebImageDownloaderHeadersFilterB
 /**
  *  A token associated with each download. Can be used to cancel a download
  */
+//与下载关联的token，可以用来取消下载（SDWebImageOperation）
 @interface SDWebImageDownloadToken : NSObject <SDWebImageOperation>
 
 /**
  The download's URL. This should be readonly and you should not modify
  */
+//下载URL
 @property (nonatomic, strong, nullable) NSURL *url;
 /**
  The cancel token taken from `addHandlersForProgress:completed`. This should be readonly and you should not modify
  @note use `-[SDWebImageDownloadToken cancel]` to cancel the token
  */
+//
 @property (nonatomic, strong, nullable) id downloadOperationCancelToken;
 
 @end
