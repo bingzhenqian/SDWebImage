@@ -32,7 +32,7 @@ static NSString *const kCompletedCallbackKey = @"completed";
 typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
 
 @interface SDWebImageDownloaderOperation ()
-
+//回调数组
 @property (strong, nonatomic, nonnull) NSMutableArray<SDCallbacksDictionary *> *callbackBlocks;
 
 @property (assign, nonatomic, getter = isExecuting) BOOL executing;
@@ -96,7 +96,7 @@ typedef NSMutableDictionary<NSString *, id> SDCallbacksDictionary;
     if (completedBlock) callbacks[kCompletedCallbackKey] = [completedBlock copy];
     //锁
     LOCK(self.callbacksLock);
-    //回调数组 callbackBlocks
+    //operation的回调数组 callbackBlocks
     [self.callbackBlocks addObject:callbacks];
     UNLOCK(self.callbacksLock);
     return callbacks;

@@ -36,7 +36,7 @@ FOUNDATION_EXPORT NSString * _Nonnull const SDWebImageDownloadFinishNotification
 - (nullable NSURLCredential *)credential;
 //设置是否需要设置凭证
 - (void)setCredential:(nullable NSURLCredential *)value;
-
+//取消
 - (BOOL)cancel:(nullable id)token;
 
 @end

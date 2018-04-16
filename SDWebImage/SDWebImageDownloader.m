@@ -13,7 +13,27 @@
 #define UNLOCK(lock) dispatch_semaphore_signal(lock);
 
 @interface SDWebImageDownloadToken ()
+/**
+ SDWebImageDownloaderOperationInterface协议
+ //初始化
+ - (nonnull instancetype)initWithRequest:(nullable NSURLRequest *)request
+ inSession:(nullable NSURLSession *)session
+ options:(SDWebImageDownloaderOptions)options;
+ //添加回调
+ - (nullable id)addHandlersForProgress:(nullable SDWebImageDownloaderProgressBlock)progressBlock
+ completed:(nullable SDWebImageDownloaderCompletedBlock)completedBlock;
+ //是否需要解压图片
+ - (BOOL)shouldDecompressImages;
+ - (void)setShouldDecompressImages:(BOOL)value;
+ 
+ - (nullable NSURLCredential *)credential;
+ //设置是否需要设置凭证
+ - (void)setCredential:(nullable NSURLCredential *)value;
+ //取消
+ - (BOOL)cancel:(nullable id)token;
 
+ 
+ */
 @property (nonatomic, weak, nullable) NSOperation<SDWebImageDownloaderOperationInterface> *downloadOperation;
 
 @end
@@ -141,7 +161,7 @@
     if ((self = [super init])) {
         //队列
         _operationClass = [SDWebImageDownloaderOperation class];
-        _shouldDecompressImages = YES;
+        _shouldDecompressImages = YES;//下载图片是否需要解压缩，默认yes
         _executionOrder = SDWebImageDownloaderFIFOExecutionOrder;
         //并发数6
         _downloadQueue = [NSOperationQueue new];
@@ -156,7 +176,7 @@
         _operationsLock = dispatch_semaphore_create(1);
         _headersLock = dispatch_semaphore_create(1);
         _downloadTimeout = 15.0;//超时时间
-
+        //新建session
         [self createNewSessionWithConfiguration:sessionConfiguration];
     }
     return self;
@@ -252,6 +272,7 @@
         _operationClass = [SDWebImageDownloaderOperation class];
     }
 }
+#pragma mark - 核心方法
 
 // 核心方法 返回SDWebImageDownloadToken，里面包含操作，操作标示，url，取消方法
 - (nullable SDWebImageDownloadToken *)downloadImageWithURL:(nullable NSURL *)url
@@ -277,16 +298,18 @@
         
         request.HTTPShouldHandleCookies = (options & SDWebImageDownloaderHandleCookies);
         request.HTTPShouldUsePipelining = YES;
+        //headersFilter SDWebImageDownloaderHeadersFilterBlock 类回调
         if (sself.headersFilter) {
             request.allHTTPHeaderFields = sself.headersFilter(url, [sself allHTTPHeaderFields]);
         }
         else {
             request.allHTTPHeaderFields = [sself allHTTPHeaderFields];
         }
-        //创建操作
+        //创建操作 SDWebImageDownloaderOperation
         SDWebImageDownloaderOperation *operation = [[sself.operationClass alloc] initWithRequest:request inSession:sself.session options:options];
+        //下载后是否需要解压搜
         operation.shouldDecompressImages = sself.shouldDecompressImages;
-        
+        //验证信息
         if (sself.urlCredential) {
             operation.credential = sself.urlCredential;
         } else if (sself.username && sself.password) {
@@ -308,13 +331,15 @@
         return operation;
     }];
 }
-
+//取消操作
 - (void)cancel:(nullable SDWebImageDownloadToken *)token {
     NSURL *url = token.url;
     if (!url) {
         return;
     }
+    //锁
     LOCK(self.operationsLock);
+    //取出operation
     SDWebImageDownloaderOperation *operation = [self.URLOperations objectForKey:url];
     if (operation) {
         BOOL canceled = [operation cancel:token.downloadOperationCancelToken];
@@ -324,7 +349,7 @@
     }
     UNLOCK(self.operationsLock);
 }
-
+#pragma mark - 核心方法
 - (nullable SDWebImageDownloadToken *)addProgressCallback:(SDWebImageDownloaderProgressBlock)progressBlock
                                            completedBlock:(SDWebImageDownloaderCompletedBlock)completedBlock
                                                    forURL:(nullable NSURL *)url
@@ -341,11 +366,62 @@
     LOCK(self.operationsLock);
     //self.URLOperations中获取下载操作  url为key
     SDWebImageDownloaderOperation *operation = [self.URLOperations objectForKey:url];
+    //新建SDWebImageDownloaderOperation
     if (!operation) {
         //没有对应操作，创建之
+        /**
+         //没有对应操作，创建操作
+         __strong __typeof (wself) sself = wself;
+         NSTimeInterval timeoutInterval = sself.downloadTimeout;
+         if (timeoutInterval == 0.0) {
+         timeoutInterval = 15.0;
+         }
+         
+         // In order to prevent from potential duplicate caching (NSURLCache + SDImageCache) we disable the cache for image requests if told otherwise
+         NSURLRequestCachePolicy cachePolicy = options & SDWebImageDownloaderUseNSURLCache ? NSURLRequestUseProtocolCachePolicy : NSURLRequestReloadIgnoringLocalCacheData;
+         //创建下载request及配置
+         NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url
+         cachePolicy:cachePolicy
+         timeoutInterval:timeoutInterval];
+         
+         request.HTTPShouldHandleCookies = (options & SDWebImageDownloaderHandleCookies);
+         request.HTTPShouldUsePipelining = YES;
+         //headersFilter SDWebImageDownloaderHeadersFilterBlock 类回调
+         if (sself.headersFilter) {
+         request.allHTTPHeaderFields = sself.headersFilter(url, [sself allHTTPHeaderFields]);
+         }
+         else {
+         request.allHTTPHeaderFields = [sself allHTTPHeaderFields];
+         }
+         //创建操作 SDWebImageDownloaderOperation
+         SDWebImageDownloaderOperation *operation = [[sself.operationClass alloc] initWithRequest:request inSession:sself.session options:options];
+         //下载后是否需要解压搜
+         operation.shouldDecompressImages = sself.shouldDecompressImages;
+         //验证信息
+         if (sself.urlCredential) {
+         operation.credential = sself.urlCredential;
+         } else if (sself.username && sself.password) {
+         operation.credential = [NSURLCredential credentialWithUser:sself.username password:sself.password persistence:NSURLCredentialPersistenceForSession];
+         }
+         //设置队列优先级
+         if (options & SDWebImageDownloaderHighPriority) {
+         operation.queuePriority = NSOperationQueuePriorityHigh;
+         } else if (options & SDWebImageDownloaderLowPriority) {
+         operation.queuePriority = NSOperationQueuePriorityLow;
+         }
+         //先进后出，添加依赖，最后的依赖于新添加的任务完成
+         if (sself.executionOrder == SDWebImageDownloaderLIFOExecutionOrder) {
+         // Emulate LIFO execution order by systematically adding new operations as last operation's dependency
+         [sself.lastAddedOperation addDependency:operation];
+         sself.lastAddedOperation = operation;
+         }
+         //返回操作
+         return operation;
+
+         */
         operation = createCallback();
         __weak typeof(self) wself = self;
-        //操作完成，
+        //操作完成回调
         operation.completionBlock = ^{
             __strong typeof(wself) sself = wself;
             if (!sself) {
@@ -356,7 +432,7 @@
             [sself.URLOperations removeObjectForKey:url];
             UNLOCK(sself.operationsLock);
         };
-        //添加到全局操作字典
+        //添加到全局操作字典  url作为键
         [self.URLOperations setObject:operation forKey:url];
         // Add operation to operation queue only after all configuration done according to Apple's doc.
         // `addOperation:` does not synchronously execute the `operation.completionBlock` so this will not cause deadlock.

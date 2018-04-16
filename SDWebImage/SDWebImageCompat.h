@@ -37,6 +37,7 @@
  | --- SDWebImageFrame 辅助类，主要在GIF等动态图使用
  | --- SDWebImageCoderHelper 辅助类，包括方向，Gif图合成等
  */
+//http://www.cnblogs.com/polobymulberry/p/5012649.html
 //https://www.jianshu.com/p/fd984fd8bd5d
 //参考 https://www.jianshu.com/p/06f0265c22eb
 #import <TargetConditionals.h>
