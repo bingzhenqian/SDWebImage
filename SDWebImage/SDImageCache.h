@@ -36,10 +36,26 @@ typedef NS_OPTIONS(NSUInteger, SDImageCacheOptions) {
     SDImageCacheQueryDiskSync = 1 << 1
 };
 
+/**
+ 查询回调Block
+ 
+ @param image 图片
+ @param data 图片数据
+ @param cacheType 缓存类型
+ */
 typedef void(^SDCacheQueryCompletedBlock)(UIImage * _Nullable image, NSData * _Nullable data, SDImageCacheType cacheType);
-
+/**
+ 磁盘缓存检查回调
+ 
+ @param isInCache 是否在缓存中
+ */
 typedef void(^SDWebImageCheckCacheCompletionBlock)(BOOL isInCache);
-
+/**
+ 磁盘缓存空间大小计算回调Block
+ 
+ @param fileCount 文件数量
+ @param totalSize 总大小
+ */
 typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger totalSize);
 
 
@@ -109,7 +125,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 - (void)addReadOnlyCachePath:(nonnull NSString *)path;
 
 #pragma mark - Store Ops
-
+#pragma mark - 保存
 /**
  * Asynchronously store an image into memory and disk cache at the given key.
  *
@@ -163,6 +179,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 - (void)storeImageDataToDisk:(nullable NSData *)imageData forKey:(nullable NSString *)key;
 
 #pragma mark - Query and Retrieve Ops
+#pragma mark - 查询
 
 /**
  *  Async check if image exists in disk cache already (does not load the image)
@@ -230,6 +247,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 - (nullable UIImage *)imageFromCacheForKey:(nullable NSString *)key;
 
 #pragma mark - Remove Ops
+#pragma mark - 删除key对应的图片
 
 /**
  * Remove the image from memory and disk cache asynchronously
@@ -249,6 +267,7 @@ typedef void(^SDWebImageCalculateSizeBlock)(NSUInteger fileCount, NSUInteger tot
 - (void)removeImageForKey:(nullable NSString *)key fromDisk:(BOOL)fromDisk withCompletion:(nullable SDWebImageNoParamsBlock)completion;
 
 #pragma mark - Cache clean Ops
+#pragma mark - 清除
 
 /**
  * Clear all memory cached images

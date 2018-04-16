@@ -126,9 +126,13 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 @interface SDImageCache ()
 
 #pragma mark - Properties
+//内存缓存 NSCache类
 @property (strong, nonatomic, nonnull) SDMemoryCache *memCache;
+//磁盘缓存路径
 @property (strong, nonatomic, nonnull) NSString *diskCachePath;
+//自定义路径
 @property (strong, nonatomic, nullable) NSMutableArray<NSString *> *customPaths;
+//磁盘缓存串行队列
 @property (strong, nonatomic, nullable) dispatch_queue_t ioQueue;
 @property (strong, nonatomic, nonnull) NSFileManager *fileManager;
 
@@ -167,21 +171,26 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         // Create IO serial queue
         //创建串行队列
         _ioQueue = dispatch_queue_create("com.hackemist.SDWebImageCache", DISPATCH_QUEUE_SERIAL);
+        
         //默认配置
         _config = [[SDImageCacheConfig alloc] init];
         
         // Init the memory cache
+        //初始化内存缓存对象
         _memCache = [[SDMemoryCache alloc] init];
         _memCache.name = fullNamespace;
 
         // Init the disk cache
         if (directory != nil) {
+            //directory存在 磁盘缓存路径
             _diskCachePath = [directory stringByAppendingPathComponent:fullNamespace];
         } else {
+            //directory不存在 磁盘缓存路径
+            //路径类似/ Users / apple / Library / Application Support / iPhone Simulator / 4.3 / Applications / 550AF26D-174B-42E6-881B-B7499FAA32B7 / Caches
             NSString *path = [self makeDiskCachePath:ns];
             _diskCachePath = path;
         }
-
+        
         dispatch_sync(_ioQueue, ^{
             self.fileManager = [NSFileManager new];
         });
@@ -189,11 +198,12 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
 #if SD_UIKIT
         // Subscribe to app events
         //添加通知 即将终止，退到后台
+        //应用终止，清除老数据
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(deleteOldFiles)
                                                      name:UIApplicationWillTerminateNotification
                                                    object:nil];
-
+        //应用进入后台，后台删除老数据
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(backgroundDeleteOldFiles)
                                                      name:UIApplicationDidEnterBackgroundNotification
@@ -263,7 +273,15 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
         completion:(nullable SDWebImageNoParamsBlock)completionBlock {
     [self storeImage:image imageData:nil forKey:key toDisk:toDisk completion:completionBlock];
 }
-//保存图片
+/**
+ 把一张图片存入缓存的具体实现
+ 
+ @param image 缓存的图片对象
+ @param imageData 缓存的图片数据
+ @param key 缓存对应的key
+ @param toDisk 是否缓存到磁盘
+ @param completionBlock 缓存完成回调
+ */
 - (void)storeImage:(nullable UIImage *)image
          imageData:(nullable NSData *)imageData
             forKey:(nullable NSString *)key
@@ -292,6 +310,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
                 if (!data && image) {
                     // If we do not have any data to detect image format, check whether it contains alpha channel to use PNG or JPEG format
                     SDImageFormat format;
+                    //png支持透明效果，通过hasAlpha来判断是png还是jpeg
                     if (SDCGImageRefContainsAlpha(image.CGImage)) {
                         format = SDImageFormatPNG;
                     } else {
@@ -339,7 +358,7 @@ FOUNDATION_STATIC_INLINE NSUInteger SDCacheCostForImage(UIImage *image) {
     }
     
     // get cache Path for image key
-    //默认路径
+    //默认路径 MD5
     NSString *cachePathForKey = [self defaultCachePathForKey:key];
     // transform to NSUrl
     NSURL *fileURL = [NSURL fileURLWithPath:cachePathForKey];

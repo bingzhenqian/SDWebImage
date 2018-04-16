@@ -5,7 +5,7 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
+//参考 https://www.cnblogs.com/LeeGof/p/6929049.html
 #import "SDWebImageManager.h"
 #import "NSImage+WebCache.h"
 #import <objc/message.h>
@@ -39,7 +39,7 @@
     });
     return instance;
 }
-
+//初始化
 - (nonnull instancetype)init {
     SDImageCache *cache = [SDImageCache sharedImageCache];
     SDWebImageDownloader *downloader = [SDWebImageDownloader sharedDownloader];
@@ -74,8 +74,9 @@
 //查看图片是否已经缓存
 - (void)cachedImageExistsForURL:(nullable NSURL *)url
                      completion:(nullable SDWebImageCheckCacheCompletionBlock)completionBlock {
+    //url作为key
     NSString *key = [self cacheKeyForURL:url];
-    
+    //内存中是否有
     BOOL isInMemoryCache = ([self.imageCache imageFromMemoryCacheForKey:key] != nil);
     
     if (isInMemoryCache) {
@@ -87,7 +88,7 @@
         });
         return;
     }
-    
+    //硬盘中是否有
     [self.imageCache diskImageExistsWithKey:key completion:^(BOOL isInDiskCache) {
         // the completion block of checkDiskCacheForImageWithKey:completion: is always called on the main queue, no need to further dispatch
         if (completionBlock) {
@@ -114,7 +115,7 @@
                                     progress:(nullable SDWebImageDownloaderProgressBlock)progressBlock
                                    completed:(nullable SDInternalCompletionBlock)completedBlock {
     // Invoking this method without a completedBlock is pointless
-    //
+    //如果想预先下载图片，使用[SDWebImagePrefetcher prefetchURLs]取代本方法。预下载图片是有很多种使用场景的，当我们使用SDWebImagePrefetcher下载图片后，之后使用该图片时就不用从网络上下载了。
     NSAssert(completedBlock != nil, @"If you mean to prefetch the image, use -[SDWebImagePrefetcher prefetchURLs] instead");
 
     // Very common mistake is to send the URL using NSString object instead of NSURL. For some strange reason, Xcode won't
@@ -127,10 +128,12 @@
     if (![url isKindOfClass:NSURL.class]) {
         url = nil;
     }
-
+    //联合 类似AF operation.manager weak
     SDWebImageCombinedOperation *operation = [SDWebImageCombinedOperation new];
     operation.manager = self;
 
+    
+    //当前url是否在失败url的集合里面。在图片的下载中，会有一些下载失败的情况，这时候会把这些下载失败的url放到一个集合中去，也就是加入了黑名单，默认是不会再继续下载黑名单中的url了，但是也有例外，当options被设置为SDWebImageRetryFailed的时候，会尝试进行重新下载。
     BOOL isFailedUrl = NO;
     if (url) {
         @synchronized (self.failedURLs) {
@@ -138,11 +141,12 @@
         }
     }
 
+    
     if (url.absoluteString.length == 0 || (!(options & SDWebImageRetryFailed) && isFailedUrl)) {
         [self callCompletionBlockForOperation:operation completion:completedBlock error:[NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorFileDoesNotExist userInfo:nil] url:url];
         return operation;
     }
-
+    //把加载图片的operation存入runningOperations，里面是所有正在做图片加载过程的operation的集合
     @synchronized (self.runningOperations) {
         [self.runningOperations addObject:operation];
     }
@@ -274,9 +278,10 @@
                 }
             }];
         } else if (cachedImage) {
+            //如果获取到了缓存图片，则直接通过缓存图片处理
             [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:cachedImage data:cachedData error:nil cacheType:cacheType finished:YES url:url];
             [self safelyRemoveOperationFromRunning:strongOperation];
-        } else {
+        } else {  //图片没有缓存并且图片也没有下载
             // Image not in cache and download disallowed by delegate
             [self callCompletionBlockForOperation:strongOperation completion:completedBlock image:nil data:nil error:nil cacheType:SDImageCacheTypeNone finished:YES url:url];
             [self safelyRemoveOperationFromRunning:strongOperation];

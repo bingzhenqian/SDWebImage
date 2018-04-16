@@ -15,7 +15,10 @@
 // for UIKit(iOS & tvOS), we use `+[UIView transitionWithView:duration:options:animations:completion]` for transition animation.
 // for AppKit(macOS), we use `+[NSAnimationContext runAnimationGroup:completionHandler:]` for transition animation. You can call `+[NSAnimationContext currentContext]` to grab the context during animations block.
 // These transition are provided for basic usage. If you need complicated animation, consider to directly use Core Animation or use `SDWebImageAvoidAutoSetImage` and implement your own after image load finished.
-
+//这个类用于在视图类别加载图像完成后提供过渡动画。 在UIView + WebCache.h的`sd_imageTransition`中使用它
+//对于UIKit（iOS和tvOS），我们使用`+ [UIView transitionWithView：duration：options：animations：completion]`进行过渡动画。
+//对于AppKit（macOS），我们使用`+ [NSAnimationContext runAnimationGroup：completionHandler：]`过渡动画。 您可以调用`+ [NSAnimationContext currentContext]`在动画块中获取上下文。
+//这些转换是为基本用法提供的。 如果您需要复杂的动画，请考虑直接使用Core Animation或使用`SDWebImageAvoidAutoSetImage`并在完成图像加载后实现您自己的。
 #if SD_UIKIT
 typedef UIViewAnimationOptions SDWebImageAnimationOptions;
 #else
